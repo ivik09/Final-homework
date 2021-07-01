@@ -1,0 +1,248 @@
+title: "Econometrics 2021"
+subtitle: "Final homework"
+author: "Boyko Amarov"
+date: "7/1/2021"
+
+
+# Instructions
+
+1. Please write your answers beneath each question and please do not remove the questions from your solution
+2. Please use the code chunks to write your code
+3. Write the free-text answers outside of code chunks, do not use # (as it renders as a heading in html)
+3. Compile your homework (press the knit button: top left in R-Studio)
+6. The use of Latex math syntax is not required for your solution.
+7. To submit your solution open your [homework github repository](https://classroom.github.com/g/W-q2A5de), find the add file button and click `upload files`. Wait for the page to load and click on the choose files button. Select your homework `Rmd` file _and_ the generated `html` file (it should have the same name as the `Rmd` file). **Homeworks without a valid html file will not be graded!**
+8. If you have trouble compiling your homework, please write me an email [boyko.amarov@gmail.com](mailto:boyko.amarov@gmail.com) to figure out what goes wrong.
+
+
+```{r, include=FALSE}
+# Please, do _not_ change this chunk
+library(tidyverse)
+happy <- 
+  read_csv(
+    "https://raw.githubusercontent.com/feb-uni-sofia/econometrics2021/main/data/world-happiness-report-2021.csv") %>%
+  select(
+    country, 
+    ladder_score, 
+    log_gdppc, 
+    social_support, 
+    generosity, 
+    corruption_percept, 
+    healthy_life_exp,
+    freedom_choices
+    )
+used_cars <- read_csv("https://raw.githubusercontent.com/feb-uni-sofia/econometrics2021/main/data/used_cars.csv") %>%
+  filter(
+    transmission %in% c("Manual", "Automatic"),
+    fuelType %in% c("Diesel", "Petrol")
+  )
+```
+# Data
+
+## World Happiness Report
+
+The [World Happiness Report](https://worldhappiness.report) is a survey of global happiness conducted by Gallup International. The report continues to gain global recognition as governments, organizations and civil society increasingly use happiness indicators to inform their policy-making decisions. Leading experts across different fields, e.g. economics, psychology, health, public policy, describe how measurements of well-being can be used effectively to assess the progress of nations. The reports review the state of happiness in the world today and show how the new science of happiness explains personal and national variations in happiness.
+
+The survey is conducted by interviewing a sample of persons in each country. The dataset `happy` contains the country-level results from the 2021 report.
+
+Variables description:
+
+- `country` (character): Country
+- `ladder_score` (numeric): Happiness score: from 0 (unhappy) to 10 (happy)
+- `log_gdppc` (numeric): Log of GDP per capita (in USD)
+- `social_support` (numeric): Social support score: this is the countries' percentage of respondents answering yes to the question: "If you were in trouble, do you have relatives or friends you can count on to help you whenever you need them, or not?"
+- `generosity` (numeric): A measure of generosity derived from the question: ""Have you donated money to a charity in the past month?". Lower values indicate less generous societies.
+- `corruption_percept` (numeric): A measure of corruption perception derived from the questions: "Is corruption widespread throughout the government or not?" and "Is corruption widespread within businesses or not?". Low values indicate low perception of corruption.
+- `healthy_life_exp` (numeric): Healthy life expectancy at birth (in years)
+- `freedom_choices` (numeric): A measure of freedom to make life choices. This is the country share of respondents answering "yes" to the question:  "Are you satisfied or dissatisfied with your freedom to choose what you do with your life?"
+
+## Used cars
+
+The dataset `used_cars` contains 100,000 online listings of used cars in the UK scraped from the web.
+
+Variables description:
+
+- `price` (numeric): Price in GBP (1 GBP is worth approximately 1.17 EUR)
+- `transmission` (character): Type of transmission: "Manual" or "Automatic"
+- `mileage` (numeric): The mileage of the car (distance used, in miles, 1 mile = 1.61 km)
+- `fuelType`(character): The type of fuel: "Diesel", "Petrol"
+- `mpg`: Miles per gallon: how many miles can the car run with one gallon (1 gallon = 3.78 liters) of fuel
+- `engineSize`: Size of the engine in liters.
+
+# Problem 1
+
+Use the `used_cars` dataset for this problem.
+
+```{r}
+glimpse(used_cars)
+```
+
+1. (1 pt) Create a boxplot for the variables `mileage` and `fuelType`
+
+```{r}
+ggplot(data = used_cars, aes(x = mileage, y = factor(fuelType))) + 
+    geom_boxplot()
+```
+
+2. (2 pt) What differences between the distributions of mileage by the different types of fuel are visible from the boxplot?
+
+The boxplot shows the quartiles of the mileage distribution regarding the fuelType ( Diesel and Petrol ).
+The Diesel tended to receive higher mileage (position of the median) and to be slightly more heterogeneous with respect mileage (width of the boxplots).
+
+3. (1 pt) Create a new variable in the dataset called `mileage_km` that equals the mileage of the car in EUR.
+
+```{r}
+used_cars <- used_cars %>% 
+     mutate(mileage_km = mileage*1.61)
+```
+
+4. (1 pt) Create a new variable in the dataset called `is_diesel` that equals 1 if the car runs on diesel 
+and equals 0 otherwise. _Hint_: use `mutate` with the `ifelse` function, run `?ifelse` to see its documentation.
+
+used_cars <- used_cars %>%
+     mutate(
+         is_diesel = ifelse(fuelType == "Diesel", 1, 0)
+     )
+
+
+5. (1 pt) Estimate the following linear model with the `lm` function.
+
+$$
+\text{mileage_km}_i = \alpha + \beta \text{is_diesel}_i + e_i, e_i \sim N(0, \sigma^2)
+$$
+
+```{r}
+fit_used_cars <- lm(mileage_km ~ is_diesel, data = used_cars)
+summary(fit_used_cars)
+```
+
+6. (4 pt) What is the meaning of the coefficients $\alpha$ and $\beta$ _in the context of the data_?
+
+The constant in the model ($\alpha$) is the expected Mileages converted into Kilometers ...
+The slope ($\beta$) is the difference between the expected fuelType from Diesel (is_diesel = 1) and Petrol (is_diesel =  0).
+
+
+7. (4 pt) Interpret the estimated coefficients (from the `lm` output)
+
+
+8. (4 pt) A car dealer tries to convince you that used cars running on diesel and on petroleum have about the same expected mileage.
+
+  - Formulate the statement in terms of the model coefficients
+  - Write down the value of the test statistic
+  - Compute the critical values at a 5% significance level
+  - Explain your decision to reject/not reject the statement based on the data
+
+```{r}
+# Compute the critical values here
+```
+
+...Explain your decision here
+
+9. (4 pt) Explain the null hypothesis underlying the t-test on the first line of the `lm` output (the line of corresponding to the intercept). 
+
+
+# Problem 2
+
+1. (1 pt) Create a scatterplot for the happiness score (`ladder_score`) and `corruption_percept`. What pattern of association is visible from the plot?
+
+```{r}
+ggplot(data = happy, aes(x = ladder_score, y = corruption_percept)) + 
+        geom_point()
+```
+
+Write your answer here (do not use comments)
+
+2. (1 pt) Create a scatterplot for the happiness score and `healthy_life_exp`. What pattern of association is visible from the plot?
+
+```{r}
+ggplot(happy, aes(x = 1:nrow(happy), y = healthy_life_exp)) +  geom_point()
+```
+
+Write your answer here (do not use comments)
+
+3. (4 pt) Fit the following linear model using the `lm` function (model 1).
+
+$$
+  \text{ladder_score}_i = \alpha + \beta \text{healthy_life_exp}_i + e_i, e_i \sim N(0, \sigma^2)
+$$
+
+  - Write down the estimated regression equation
+  - Explain the meaning of the coefficients $\alpha$ and $\beta$ _in the context of the data_.
+  - Interpret the estimated coefficients (from the `lm` output)
+
+```{r}
+fit_model1 <- lm(ladder_score ~ healthy_life_exp, data = happy)
+summary(fit_model1)
+```
+
+Explaining the meaning of the coefficients: 
+The constant in the model ($\alpha$) is the expected ladder_score.
+The slope ($\beta$) is the difference between the expected healthy_life_exp.
+
+... Write the estimated equation here.
+
+... Write the interpretation of the coefficients here.
+
+4. (4 pt)  Fit the following linear model using the `lm` function (model 2).
+
+$$
+  \text{ladder_score}_i = \alpha + \beta \text{corruption_percept}_i + e_i, e_i \sim N(0, \sigma^2)
+$$
+  - Write down the estimated regression equation
+  - Explain the meaning of the coefficients $\alpha$ and $\beta$ _in the context of the data_.
+  - Interpret the estimated coefficients (from the `lm` output)
+
+```{r}
+fit_model2 <- lm(ladder_score ~ corruption_percept, data = happy)
+summary(fit_model2)
+```
+
+Explaining the meaning of the coefficients: 
+The constant in the model ($\alpha$) is the expected ladder_score.
+The slope ($\beta$) is the difference between the expected corruption_percept.
+
+
+... Write the estimated equation here.
+
+... Write the interpretation of the coefficients here.
+
+ 
+5. (6 pt) Fit the following linear model using the `lm` function (model 3).
+
+$$
+  \text{ladder_score}_i = \alpha + \beta_1 \text{healthy_life_exp}_i + \beta_2 \text{corruption_percept}_i + e_i, e_i \sim N(0, \sigma^2)
+$$
+
+  - Write down the estimated regression equation
+  - Explain the meaning of the coefficients $\alpha$,  $\beta_1$ and $\beta_2$ _in the context of the data_.
+  - Interpret the estimated coefficients (from the `lm` output)
+  - Explain the change of the `corruption_percept` coefficient between model 2 and model 3 _in the context of the data_.
+
+```{r}
+# Fit model 3 here
+```
+
+... Write the estimated equation here.
+
+... Write the interpretation of the coefficients here.
+
+
+6. (4 pt) An analyst claims that the expected happiness scores does not depend on the perceived corruption given the level of life expectancy.
+
+  - Formulate the hypothesis in terms of the model coefficients with a two-sided alternative.
+  - Write down the value of the t-statistic
+  - Compute the critical values at а 5% significance level
+  - Explain your decision to reject/not reject the null hypothesis
+
+... Formulate the hypothesis here (use of Latex math syntax is not required)
+
+... Write down the value of the t-statistic here
+
+```{r}
+# Compute the critical values here
+```
+
+...Explain your decision here
+
+
+7. (2 pt) Make a prediction for the expected happiness score for a country with average values of `healthy_life_exp` and `corruption_percept` (averaged over all countries).
